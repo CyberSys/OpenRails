@@ -22,6 +22,7 @@ using Orts.Common;
 using Orts.Parsers.Msts;
 using Orts.Simulation.Physics;
 using ORTS.Common;
+using Orts.Common.Scripting;
 using ORTS.Scripting.Api;
 using System;
 using System.Collections.Generic;
@@ -276,17 +277,31 @@ namespace Orts.Simulation.RollingStocks.SubSystems
                     Locomotive.Train.SignalEvent(PowerSupplyEvent.LowerPantograph);
                 }
             };
-            Script.SetPowerAuthorization = (value) =>
-            {
-                if (PowerAuthorization != value)
-                    PowerAuthorization = value;
-            };
+            Script.SetPowerAuthorization = (value) => SetPowerAuthorization(value);
             Script.GetBoolParameter = (arg1, arg2, arg3) => LoadParameter<bool>(arg1, arg2, arg3);
             Script.GetIntParameter = (arg1, arg2, arg3) => LoadParameter<int>(arg1, arg2, arg3);
             Script.GetFloatParameter = (arg1, arg2, arg3) => LoadParameter<float>(arg1, arg2, arg3);
             Script.GetStringParameter = (arg1, arg2, arg3) => LoadParameter<string>(arg1, arg2, arg3);
 
             Script.Initialize();
+        }
+
+        public float SignalItem(int forsight, ORTSControlType type)
+        {
+            switch (type)
+            {
+                case ORTSControlType.ORTSSignalAspect: return forsight == 0 ? (int)Aspect.StopAndProceed : 
+                    (int)NextSignalItem<Aspect>(forsight - 1, ref SignalAspects, Train.TrainObjectItem.TRAINOBJECTTYPE.SIGNAL);
+                case ORTSControlType.ORTSSignalSpeedLimitMpS: return forsight == 0 ? Locomotive.Train.allowedMaxSpeedSignalMpS : 
+                    NextSignalItem<float>(forsight - 1, ref SignalSpeedLimits, Train.TrainObjectItem.TRAINOBJECTTYPE.SIGNAL);
+                case ORTSControlType.ORTSPostSpeedLimitMpS: return forsight == 0 ? Locomotive.Train.allowedMaxSpeedLimitMpS :
+                    NextSignalItem<float>(forsight - 1, ref PostSpeedLimits, Train.TrainObjectItem.TRAINOBJECTTYPE.SPEEDPOST);
+                case ORTSControlType.ORTSSignalDistanceM: return forsight == 0 ? -1 :
+                    NextSignalItem<float>(forsight - 1, ref SignalDistances, Train.TrainObjectItem.TRAINOBJECTTYPE.SIGNAL);
+                case ORTSControlType.ORTSPostDistanceM: return forsight == 0 ? -1 :
+                    NextSignalItem<float>(forsight - 1, ref PostDistances, Train.TrainObjectItem.TRAINOBJECTTYPE.SPEEDPOST);
+                default: return 0;
+            }
         }
 
         T NextSignalItem<T>(int forsight, ref List<T> list, Train.TrainObjectItem.TRAINOBJECTTYPE type)
@@ -487,6 +502,13 @@ namespace Orts.Simulation.RollingStocks.SubSystems
             else
                 return defaultValue;
         }
+        
+        public void SetPowerAuthorization(bool value)
+        {
+            if (PowerAuthorization != value)
+                PowerAuthorization = value;
+        }
+
     }
 
     public class MSTSTrainControlSystem : TrainControlSystem

@@ -53,6 +53,7 @@ using Orts.Simulation.RollingStocks.SubSystems.Brakes.MSTS;
 using Orts.Simulation.RollingStocks.SubSystems.Controllers;
 using Orts.Simulation.RollingStocks.SubSystems.PowerTransmissions;
 using ORTS.Common;
+using Orts.Common.Scripting;
 using ORTS.Scripting.Api;
 using System;
 using System.Collections.Generic;
@@ -233,6 +234,7 @@ namespace Orts.Simulation.RollingStocks
         public float DynamicBrakeIntervention = -1;
         protected float PreviousDynamicBrakeIntervention = -1;
 
+        public List<ContentScript> ContentScripts;
         public ScriptedTrainControlSystem TrainControlSystem;
 
         public Axle LocomotiveAxle;
@@ -263,6 +265,9 @@ namespace Orts.Simulation.RollingStocks
             ThrottleController = new MSTSNotchController();
             DynamicBrakeController = new MSTSNotchController();
             TrainControlSystem = new ScriptedTrainControlSystem(this);
+            ContentScripts = new List<ContentScript>();
+            // FIXME: ContentScript filename parsing is unfinished
+            ContentScripts.Add(new ContentScript(this));
         }
 
         /// <summary>
@@ -306,11 +311,11 @@ namespace Orts.Simulation.RollingStocks
                         CabViewList.Add(CabViewList[0]);
                         CabViewList[0].CabViewType = CabViewType.Void;
                     }
-                }
+                 }
                 CabView3D = BuildCab3DView();
                 if (CabViewList.Count == 0 & CabView3D == null)
                     Trace.TraceWarning("{0} locomotive's CabView references non-existent {1}", wagFilePath, CVFFileName);
-            }
+                }
 
             CheckCoherence();
             GetPressureUnit();
@@ -395,8 +400,8 @@ namespace Orts.Simulation.RollingStocks
                                 PressureUnit unit = pressureUnits[cvc.Units];
 
                                 BrakeSystemPressureUnits[component] = unit;
+                                }
                             }
-                        }
                     }
 
                     // Manual rules :
@@ -405,12 +410,12 @@ namespace Orts.Simulation.RollingStocks
                     BrakeSystemPressureUnits[BrakeSystemComponent.EmergencyReservoir] = BrakeSystemPressureUnits[BrakeSystemComponent.BrakePipe]; // Emergency Reservoir is supplied by Brake Pipe
 
                     foreach (BrakeSystemComponent component in BrakeSystemPressureUnits.Keys.ToList())
-                    {
+                            {
                         if (BrakeSystemPressureUnits[component] == PressureUnit.None)
                         {
                             BrakeSystemPressureUnits[component] = (MilepostUnitsMetric ? PressureUnit.Bar : PressureUnit.PSI);
+                            }
                         }
-                    }
                     break;
 
                 case "bar":
@@ -741,6 +746,8 @@ namespace Orts.Simulation.RollingStocks
             EngineBrakeController = locoCopy.EngineBrakeController != null ? locoCopy.EngineBrakeController.Clone(this) : null;
             DynamicBrakeController = locoCopy.DynamicBrakeController != null ? (MSTSNotchController)locoCopy.DynamicBrakeController.Clone() : null;
             TrainControlSystem.Copy(locoCopy.TrainControlSystem);
+            foreach (var script in locoCopy.ContentScripts)
+                ContentScripts.Add(script.Clone());
 
             MoveParamsToAxle();
 
@@ -894,6 +901,8 @@ namespace Orts.Simulation.RollingStocks
             TrainBrakeController.Initialize();
             EngineBrakeController.Initialize();
             TrainControlSystem.Initialize();
+            foreach (var script in ContentScripts)
+                script.Initialize();
 
             base.Initialize();
             if (DynamicBrakeBlendingEnabled) airPipeSystem = BrakeSystem as AirSinglePipe;
@@ -1000,6 +1009,9 @@ namespace Orts.Simulation.RollingStocks
         public override void Update(float elapsedClockSeconds)
         {
             TrainControlSystem.Update();
+            foreach (var script in ContentScripts)
+                script.Update(elapsedClockSeconds);
+
             TrainBrakeController.Update(elapsedClockSeconds);
             if (TrainBrakeController.UpdateValue > 0.0)
             {
@@ -1045,7 +1057,7 @@ namespace Orts.Simulation.RollingStocks
                 {
                     if (DynamicBrakeController != null)
                     {
-                        DynamicBrakeController.Update(elapsedClockSeconds);
+                    DynamicBrakeController.Update(elapsedClockSeconds);
                         DynamicBrakePercent = (DynamicBrakeIntervention < 0 ? DynamicBrakeController.CurrentValue : DynamicBrakeIntervention) * 100f;
                     }
                     else 
@@ -1125,9 +1137,9 @@ namespace Orts.Simulation.RollingStocks
             {
                 if (Train.IsPlayerDriven)
                 {
-                    switch (Direction)
-                    {
-                        case Direction.Forward:
+                                switch (Direction)
+                                {
+                                    case Direction.Forward:
                             //MotiveForceN *= 1;     //Not necessary
                             break;
                         case Direction.Reverse:
@@ -1139,17 +1151,17 @@ namespace Orts.Simulation.RollingStocks
                             break;
                     }
                 }
-                else // for AI locomotives
+            else // for AI locomotives
+            {
+                switch (Direction)
                 {
-                    switch (Direction)
-                    {
-                        case Direction.Reverse:
-                            MotiveForceN *= -1;
-                            break;
-                        default:
-                            break;
-                    }
-                }// end AI locomotive
+                    case Direction.Reverse:
+                        MotiveForceN *= -1;
+                        break;
+                    default:
+                        break;
+                }
+            }// end AI locomotive
             }
 
             if (DynamicBrakePercent > 0 && DynamicBrakeForceCurves != null)
@@ -1159,7 +1171,7 @@ namespace Orts.Simulation.RollingStocks
                 {
                     MotiveForceN -= (SpeedMpS > 0 ? 1 : -1) * f;
                     DynamicBrakeForceN = f;
-                }
+            }
                 else
                 {
                     DynamicBrakeForceN = 0f;
@@ -1589,7 +1601,7 @@ namespace Orts.Simulation.RollingStocks
                     Train.MUReverserPercent = -100;
             }
 
-        }
+            }
 
         public virtual void StartReverseIncrease(float? target)
         {
@@ -1645,9 +1657,9 @@ namespace Orts.Simulation.RollingStocks
                 if (!(CombinedControlType == CombinedControl.ThrottleDynamic
                     || CombinedControlType == CombinedControl.ThrottleAir && TrainBrakeController.CurrentValue > 0))
                 {
-                    Simulator.Confirmer.Warning(CabControl.Throttle, CabSetting.Warn1);
-                    return;
-                }
+                Simulator.Confirmer.Warning(CabControl.Throttle, CabSetting.Warn1);
+                return;
+            }
             }
 
             if (CombinedControlType == CombinedControl.ThrottleDynamic && DynamicBrake)
@@ -2330,7 +2342,7 @@ namespace Orts.Simulation.RollingStocks
             if (OdometerCountingForwards != OdometerCountingUp ^ (Direction == Direction.Reverse))
             {
                 OdometerCountingForwards = !OdometerCountingForwards;
-            }
+        }
 
             if (Direction == Direction.Reverse)
             {

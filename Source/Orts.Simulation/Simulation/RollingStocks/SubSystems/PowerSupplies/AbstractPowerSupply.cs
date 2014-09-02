@@ -74,7 +74,7 @@ namespace Orts.Simulation.RollingStocks.SubSystems.PowerSupplies
                 return auxiliaryState;
             }
 
-            protected set
+            set
             {
                 if (auxiliaryState != value)
                 {

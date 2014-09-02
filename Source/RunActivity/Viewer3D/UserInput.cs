@@ -134,13 +134,27 @@ namespace Orts.Viewer3D
                 RDState.Handled();
         }
 
+        public static bool IsPressed(UserCommandInput setting)
+        {
+            return setting.IsKeyDown(KeyboardState) && !setting.IsKeyDown(LastKeyboardState);
+        }
+
+        public static bool IsReleased(UserCommandInput setting)
+        {
+            return !setting.IsKeyDown(KeyboardState) && setting.IsKeyDown(LastKeyboardState);
+        }
+
+        public static bool IsDown(UserCommandInput setting)
+        {
+            return setting.IsKeyDown(KeyboardState);
+        }
+
         public static bool IsPressed(UserCommands command)
         {
             if (ComposingMessage == true) return false;
             if (RDState != null && RDState.IsPressed(command))
                 return true;
-            var setting = InputSettings.Commands[(int)command];
-            return setting.IsKeyDown(KeyboardState) && !setting.IsKeyDown(LastKeyboardState);
+            return IsPressed(InputSettings.Commands[(int)command]);
         }
 
         public static bool IsReleased(UserCommands command)
@@ -148,8 +162,7 @@ namespace Orts.Viewer3D
             if (ComposingMessage == true) return false;
             if (RDState != null && RDState.IsReleased(command))
                 return true;
-            var setting = InputSettings.Commands[(int)command];
-            return !setting.IsKeyDown(KeyboardState) && setting.IsKeyDown(LastKeyboardState);
+            return IsReleased(InputSettings.Commands[(int)command]);
         }
 
         public static bool IsDown(UserCommands command)
@@ -157,8 +170,7 @@ namespace Orts.Viewer3D
             if (ComposingMessage == true) return false;
             if (RDState != null && RDState.IsDown(command))
                 return true;
-            var setting = InputSettings.Commands[(int)command];
-            return setting.IsKeyDown(KeyboardState);
+            return IsDown(InputSettings.Commands[(int)command]);
         }
 
         public static Keys[] GetPressedKeys() { return KeyboardState.GetPressedKeys(); }

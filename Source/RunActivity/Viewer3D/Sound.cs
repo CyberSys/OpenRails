@@ -1319,6 +1319,10 @@ namespace Orts.Viewer3D
         /// </summary>
         public Event TriggerID;
         /// <summary>
+        /// Custom number this trigger listens to
+        /// </summary>
+        public int CustomTriggerID;
+        /// <summary>
         /// Store the owning SoundStream
         /// </summary>
         private SoundStream SoundStream;
@@ -1358,6 +1362,29 @@ namespace Orts.Viewer3D
                 try
                 {
                     if (Program.Viewer.SoundProcess.IsSoundSourceOwnedBy(viewer, SoundStream.SoundSource))
+                    {
+                        Triggered = true;
+                    }
+                }
+                catch
+                {
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Check if this trigger listens to a custom trigger number, and if also belongs to the object
+        /// </summary>
+        /// <param name="eventID">Occured event</param>
+        /// <param name="viewer">Object the event belongs to</param>
+        public void HandleEvent(int customEventID, object viewer)
+        {
+            if (customEventID == CustomTriggerID)
+            {
+                try
+                {
+                    if (Program.Viewer.SoundProcess.GetSoundSources()[viewer].Contains(SoundStream.SoundSource as SoundSourceBase))
                     {
                         Triggered = true;
                     }

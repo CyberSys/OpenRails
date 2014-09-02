@@ -33,6 +33,22 @@ namespace ORTS.Scripting.Api
         /// Running total of distance travelled - always positive, updated by train physics.
         /// </summary>
         public Func<float> DistanceM;
+        /// <summary>
+        /// Either define a new custom control, that will be common for all scripts of a particular locomotive,
+        /// or hide from cab renderer the original calculated value of a predefined control, which then can be exposed by the script.
+        /// Note: the original calculated value will still be available through GetControlValue.
+        /// </summary>
+        public Action<string> RegisterControl;
+        /// <summary>
+        /// Either set the value of a custom control, or set a value for a predefined control.
+        /// ("ControlName", index, value)
+        /// </summary>
+        public Action<string, int, float> SetControlValue;
+        /// <summary>
+        /// Either read the value of a custom control, or read the original value of a taken over predefined control
+        /// ("ControlName", index)
+        /// </summary>
+        public Func<string, int, float> GetControlValue;
     }
 
     /// <summary>

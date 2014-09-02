@@ -28,6 +28,7 @@ using Orts.Simulation.RollingStocks.SubSystems.Controllers;
 using Orts.Viewer3D.Common;
 using Orts.Viewer3D.Popups;
 using ORTS.Common;
+using Orts.Common.Scripting;
 using ORTS.Scripting.Api;
 using ORTS.Settings;
 using System;
@@ -73,6 +74,27 @@ namespace Orts.Viewer3D.RollingStock
                 foreach (var script in Locomotive.TrainControlSystem.Sounds.Keys)
                     Viewer.SoundProcess.AddSoundSources(script, new List<SoundSourceBase>() {
                         new SoundSource(Viewer, Locomotive, Locomotive.TrainControlSystem.Sounds[script])});
+
+            foreach (var script in Locomotive.ContentScripts)
+            {
+                if (script.SoundFileName != null && script.SoundFileName != "")
+                {
+                    var soundPathArray = new[] {
+                        Path.Combine(Path.GetDirectoryName(Locomotive.WagFilePath), "SOUND"),
+                        Path.Combine(Viewer.Simulator.BasePath, "SOUND"),
+                    };
+                    var soundPath = ORTSPaths.GetFileFromFolders(soundPathArray, script.SoundFileName);
+                    if (File.Exists(soundPath))
+                        Viewer.SoundProcess.AddSoundSources(script, new List<SoundSourceBase>() {
+                            new SoundSource(Viewer, Locomotive, soundPath) });
+                    //Sounds.Add(Script, soundPath);
+                }
+            }
+
+            // Delegate UserInput class methods to ContentScript, so that the script will be able to query input devices states
+            if (ContentScript.UserInputIsDown == null) ContentScript.UserInputIsDown = (command) => UserInput.IsDown(command);
+            if (ContentScript.UserInputIsPressed == null) ContentScript.UserInputIsPressed = (setting) => UserInput.IsPressed(setting);
+            if (ContentScript.UserInputIsReleased == null) ContentScript.UserInputIsReleased = (setting) => UserInput.IsReleased(setting);
         }
 
         protected virtual void StartGearBoxIncrease()
@@ -222,15 +244,22 @@ namespace Orts.Viewer3D.RollingStock
             
             foreach (var command in UserInputCommands.Keys)
             {
+                // Check if a built-in command is disabled by engine script first
                 if (UserInput.IsPressed(command))
                 {
-                    UserInputCommands[command][1]();
+                    if (ContentScript.SignalEvent(Locomotive.ContentScripts, command.ToString(), 1) == 0)
+                        UserInputCommands[command][1]();
                 }
                 else if (UserInput.IsReleased(command))
                 {
-                    UserInputCommands[command][0]();
+                    if (ContentScript.SignalEvent(Locomotive.ContentScripts, command.ToString(), 0) == 0)
+                        UserInputCommands[command][0]();
                 }
             }
+            
+            // Execute custom commands defined in keymap
+            foreach (var script in Locomotive.ContentScripts)
+                script.HandleUserInput(elapsedTime);
         }
 
         /// <summary>
@@ -2191,7 +2220,7 @@ namespace Orts.Viewer3D.RollingStock
                     typeName = matrixName.Split('-')[0]; //a part may have several sub-parts, like ASPECT_SIGNAL:0:0-1, ASPECT_SIGNAL:0:0-2
                     type = CABViewControlTypes.NONE;
                     tmpPart = null;
-                    int order, key;
+                    int order, key = 0;
                     string parameter1="0", parameter2="";
                     CabViewControlRenderer style = null;
                     //ASPECT_SIGNAL:0:0
@@ -2213,11 +2242,19 @@ namespace Orts.Viewer3D.RollingStock
                     catch
                     {
                         type = CABViewControlTypes.NONE;
-                        continue;
+                        var scriptedControl = false;
+                        foreach (var script in Locomotive.ContentScripts)
+                        {
+                            if (script.ScriptedControls.ContainsKey(tmp[0].Trim()))
+                            {
+                                key = (tmp[0].Trim()).GetHashCode();
+                                scriptedControl = true;
+                            }
+                        }
+                        if (!scriptedControl)
+                            continue;
                     }
 
-
-                    key = 1000 * (int)type + order;
                     if (style != null && style is CabViewDigitalRenderer)//digits?
                     {
                         //DigitParts.Add(key, new DigitalDisplay(viewer, TrainCarShape, iMatrix, parameter, locoViewer.ThreeDimentionCabRenderer.ControlMap[key]));

@@ -57,6 +57,9 @@
     <Compile Include="Common\ORTSPaths.cs" />
     <Compile Include="Common\Scripting\BrakeController.cs" />
     <Compile Include="Common\Scripting\Common.cs" />
+    <Compile Include="Common\Scripting\ControllerScript.cs" />
+    <Compile Include="Common\Scripting\EngineKeyMap.cs" />
+    <Compile Include="Common\Scripting\EngineScript.cs" />
     <Compile Include="Common\Scripting\PowerSupply\AbstractPowerSupply.cs" />
     <Compile Include="Common\Scripting\PowerSupply\CircuitBreaker.cs" />
     <Compile Include="Common\Scripting\PowerSupply\ElectricPowerSupply.cs" />

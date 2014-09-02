@@ -165,6 +165,8 @@ namespace Orts.Common
             switch (source)
             {
                 case Source.MSTSCar:
+                    if (1000 <= eventID && eventID < 1100)
+                        return (Event)eventID;
                     if (mstsBinEnabled)
                     {
                         switch (eventID)

@@ -21,6 +21,7 @@ using Orts.Simulation;
 using Orts.Simulation.Physics;
 using Orts.Simulation.RollingStocks;
 using ORTS.Common;
+using Orts.Common.Scripting;
 using ORTS.Scripting.Api;
 using System;
 using System.Diagnostics;   // Used by Trace.Warnings
@@ -1079,6 +1080,30 @@ namespace Orts.Common
         {
             if (Receiver == null) return;
             Receiver.ToggleCylinderCompound();
+            // Report();
+        }
+    }
+
+    [Serializable()]
+    public class ScriptedControlCommand : Command
+    {
+        public static MSTSLocomotive Receiver { get; set; }
+        public Scripting.KeyMapCommand Command { get; set; }
+
+        public ScriptedControlCommand(CommandLog log, Scripting.KeyMapCommand command)
+            : base(log)
+        {
+            Command = command;
+            Redo();
+        }
+
+        public override void Redo()
+        {
+            if (Receiver == null) return;
+            if (Command.Index == 1)
+                ContentScript.HandleEvent(Receiver.EventHandlers, Command.SoundTrigger);
+            foreach (var script in Receiver.ContentScripts)
+                script.Execute(Command);
             // Report();
         }
     }

@@ -465,6 +465,7 @@ namespace Orts.Viewer3D
             ToggleCabLightCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
             ToggleWipersCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
             HeadlightCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
+            ScriptedControlCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
             ChangeCabCommand.Receiver = this;
             ToggleDoorsLeftCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
             ToggleDoorsRightCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
