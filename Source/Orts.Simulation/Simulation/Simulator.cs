@@ -997,6 +997,7 @@ namespace Orts.Simulation
             }// for each rail car
 
             train.CheckFreight();
+            train.SetDPUnitIDs();
 
             if (Activity != null && !MPManager.IsMultiPlayer()) // activity is defined
             {

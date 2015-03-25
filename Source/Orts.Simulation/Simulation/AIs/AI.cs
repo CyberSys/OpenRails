@@ -810,6 +810,7 @@ namespace Orts.Simulation.AIs
 #endif
             train.CreateRoute(false);  // create route without use of FrontTDBtraveller
             train.CheckFreight(); // check if train is freight or passenger
+            train.SetDPUnitIDs();
             train.AITrainDirectionForward = true;
             train.BrakeLine3PressurePSI = 0;
 

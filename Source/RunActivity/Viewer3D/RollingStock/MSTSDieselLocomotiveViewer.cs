@@ -102,7 +102,7 @@ namespace Orts.Viewer3D.RollingStock
             foreach (var car in DieselLocomotive.Train.Cars)
             {
                 var mstsDieselLocomotive = car as MSTSDieselLocomotive;
-                if (mstsDieselLocomotive != null && mstsDieselLocomotive.AcceptMUSignals)
+                if (mstsDieselLocomotive != null && mstsDieselLocomotive.RemoteControlGroup >= 0)
                 {
                     if (mstsDieselLocomotive.DieselEngines.Count > 0)
                     {
@@ -140,7 +140,7 @@ namespace Orts.Viewer3D.RollingStock
                     }
                     //mstsDieselLocomotive.StartStopDiesel();
                     powerOn = mstsDieselLocomotive.DieselEngines.PowerOn;
-                    if ((car != Program.Simulator.PlayerLocomotive) && (mstsDieselLocomotive.AcceptMUSignals))
+                    if (car != Program.Simulator.PlayerLocomotive && mstsDieselLocomotive.RemoteControlGroup >= 0)
                     {
                         if ((mstsDieselLocomotive.DieselEngines[0].EngineStatus == DieselEngine.Status.Stopped) ||
                             (mstsDieselLocomotive.DieselEngines[0].EngineStatus == DieselEngine.Status.Stopping))

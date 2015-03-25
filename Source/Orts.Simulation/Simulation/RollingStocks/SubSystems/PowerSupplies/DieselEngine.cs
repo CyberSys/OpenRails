@@ -292,34 +292,49 @@ namespace Orts.Simulation.RollingStocks.SubSystems.PowerSupplies
             return new DieselEnum(DEList.ToArray());
         }
 
+        public static string SetDebugLabels(int numberOfEngines)
+        {
+            var labels = new StringBuilder();
+            var tabs = "\t";
+            for (var i = 1; i < numberOfEngines; i++) tabs += "\t";
+            labels.AppendFormat("{0}{1}", Simulator.Catalog.GetString("Status"), tabs);
+            labels.AppendFormat("{0}{1}", Simulator.Catalog.GetParticularString("HUD", "Power"), tabs);
+            labels.AppendFormat("{0}{1}", Simulator.Catalog.GetString("Load"), tabs);
+            labels.AppendFormat("{0}{1}", Simulator.Catalog.GetString("RPM"), tabs);
+            labels.AppendFormat("{0}{1}", Simulator.Catalog.GetString("Flow"), tabs);
+            labels.AppendFormat("{0}{1}", Simulator.Catalog.GetString("Temperature"), tabs);
+            labels.AppendFormat("{0}{1}", Simulator.Catalog.GetString("Oil Pressure"), tabs);
+            return labels.ToString();
+        }
+
         public string GetStatus()
         {
             var result = new StringBuilder();
 
-            result.AppendFormat(Simulator.Catalog.GetString("Status"));
+            //result.AppendFormat(Simulator.Catalog.GetString("Status"));
             foreach (var eng in DEList)
                 result.AppendFormat("\t{0}", Simulator.Catalog.GetString(GetStringAttribute.GetPrettyName(eng.EngineStatus)));
 
-            result.AppendFormat("\t{0}\t{1}", Simulator.Catalog.GetParticularString("HUD", "Power"), FormatStrings.FormatPower(MaxOutputPowerW, Locomotive.IsMetric, false, false));
+            //result.AppendFormat("\t{0}\t{1}", Simulator.Catalog.GetParticularString("HUD", "Power"), FormatStrings.FormatPower(MaxOutputPowerW, Locomotive.IsMetric, false, false));
             foreach (var eng in DEList)
                 result.AppendFormat("\t{0}", FormatStrings.FormatPower(eng.MaxOutputPowerW, Locomotive.IsMetric, false, false));
 
-            result.AppendFormat("\t{0}", Simulator.Catalog.GetString("Load"));
+            //result.AppendFormat("\t{0}", Simulator.Catalog.GetString("Load"));
             foreach (var eng in DEList)
                 result.AppendFormat("\t{0:F1}%", eng.LoadPercent);
 
             foreach (var eng in DEList)
                 result.AppendFormat("\t{0:F0} {1}", eng.RealRPM, FormatStrings.rpm);
 
-            result.AppendFormat("\t{0}", Simulator.Catalog.GetString("Flow"));
+            //result.AppendFormat("\t{0}", Simulator.Catalog.GetString("Flow"));
             foreach (var eng in DEList)
                 result.AppendFormat("\t{0}/{1}", FormatStrings.FormatFuelVolume(pS.TopH(eng.DieselFlowLps), Locomotive.IsMetric, Locomotive.IsUK), FormatStrings.h);
 
-            result.Append("\t");
+            //result.Append("\t");
             foreach (var eng in DEList)
                 result.AppendFormat("\t{0}", FormatStrings.FormatTemperature(eng.DieselTemperatureDeg, Locomotive.IsMetric, false));
 
-            result.AppendFormat("\t{0}", Simulator.Catalog.GetString("Oil"));
+            //result.AppendFormat("\t{0}", Simulator.Catalog.GetString("Oil"));
             foreach (var eng in DEList)
                 result.AppendFormat("\t{0}", FormatStrings.FormatPressure(eng.DieselOilPressurePSI, PressureUnit.PSI, Locomotive.MainPressureUnit, true));
 
@@ -782,9 +797,9 @@ namespace Orts.Simulation.RollingStocks.SubSystems.PowerSupplies
                 RealRPM = IdleRPM;
                 EngineStatus = Status.Running;
             }
-            RPMRange = MaxRPM - IdleRPM;
-            MagnitudeRange = MaxMagnitude - InitialMagnitude;
-            ExhaustRange = MaxExhaust - InitialExhaust;
+                RPMRange = MaxRPM - IdleRPM;
+                MagnitudeRange = MaxMagnitude - InitialMagnitude;
+                ExhaustRange = MaxExhaust - InitialExhaust;
             ExhaustSteadyColor.A = 10;
             ExhaustDecelColor.A = 10;
         }
@@ -900,8 +915,8 @@ namespace Orts.Simulation.RollingStocks.SubSystems.PowerSupplies
                 if (DieselConsumptionTab != null)
                 {
                          DieselFlowLps = DieselConsumptionTab[RealRPM] / 3600.0f;
-                }
-                else
+                    }
+                    else
                 {
                     if (ThrottlePercent == 0)
                         DieselFlowLps = DieselUsedPerHourAtIdleL / 3600.0f;

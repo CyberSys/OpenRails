@@ -124,8 +124,8 @@ namespace Orts.Viewer3D.Popups
                 ||
               (Viewer.PlayerTrain.Cars[CarPosition].GetType() == typeof(MSTSDieselLocomotive)))
             {
-                new ToggleMUCommand(Viewer.Log, (Viewer.PlayerTrain.Cars[CarPosition] as MSTSLocomotive), !(Viewer.PlayerTrain.Cars[CarPosition] as MSTSLocomotive).AcceptMUSignals);
-                if ((Viewer.PlayerTrain.Cars[CarPosition] as MSTSLocomotive).AcceptMUSignals)
+                new ToggleMUCommand(Viewer.Log, (Viewer.PlayerTrain.Cars[CarPosition] as MSTSLocomotive), (Viewer.PlayerTrain.Cars[CarPosition] as MSTSLocomotive).RemoteControlGroup < 0);
+                if ((Viewer.PlayerTrain.Cars[CarPosition] as MSTSLocomotive).RemoteControlGroup >= 0)
                     Viewer.Simulator.Confirmer.Information(Viewer.Catalog.GetString("MU signal connected"));
                 else
                     Viewer.Simulator.Confirmer.Information(Viewer.Catalog.GetString("MU signal disconnected"));

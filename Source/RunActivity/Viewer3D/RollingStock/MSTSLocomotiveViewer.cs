@@ -167,6 +167,13 @@ namespace Orts.Viewer3D.RollingStock
             UserInputCommands.Add(UserCommands.ControlOdoMeterShowHide, new Action[] { Noop, () => new ToggleOdometerCommand(Viewer.Log) });
             UserInputCommands.Add(UserCommands.ControlOdoMeterReset, new Action[] { Noop, () => new ResetOdometerCommand(Viewer.Log) });
             UserInputCommands.Add(UserCommands.ControlOdoMeterDirection, new Action[] { Noop, () => new ToggleOdometerDirectionCommand(Viewer.Log) });
+            UserInputCommands.Add(UserCommands.ControlDPMoveToFront, new Action[] { Noop, () => new DPMoveToFrontCommand(Viewer.Log) });
+            UserInputCommands.Add(UserCommands.ControlDPMoveToBack, new Action[] { Noop, () => new DPMoveToBackCommand(Viewer.Log) });
+            UserInputCommands.Add(UserCommands.ControlDPTraction, new Action[] { Noop, () => new DPTractionCommand(Viewer.Log) });
+            UserInputCommands.Add(UserCommands.ControlDPIdle, new Action[] { Noop, () => new DPIdleCommand(Viewer.Log) });
+            UserInputCommands.Add(UserCommands.ControlDPBrake, new Action[] { Noop, () => new DPDynamicBrakeCommand(Viewer.Log) });
+            UserInputCommands.Add(UserCommands.ControlDPMore, new Action[] { Noop, () => new DPMoreCommand(Viewer.Log) });
+            UserInputCommands.Add(UserCommands.ControlDPLess, new Action[] { Noop, () => new DPLessCommand(Viewer.Log) });
             base.InitializeUserInputCommands();
         }
 

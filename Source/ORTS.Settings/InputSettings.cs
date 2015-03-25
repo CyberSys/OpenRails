@@ -200,6 +200,13 @@ namespace ORTS.Settings
         [GetString("Control Refill")] ControlRefill,
         [GetString("Control TroughRefill")] ControlTroughRefill,
         [GetString("Control ImmediateRefill")]ControlImmediateRefill,
+        [GetString("Control DP Move To Front")]ControlDPMoveToFront,
+        [GetString("Control DP Move To Back")]ControlDPMoveToBack,
+        [GetString("Control DP Traction")]ControlDPTraction,
+        [GetString("Control DP Idle")]ControlDPIdle,
+        [GetString("Control DP Brake")]ControlDPBrake,
+        [GetString("Control DP More")]ControlDPMore,
+        [GetString("Control DP Less")]ControlDPLess,
     }
 
     /// <summary>
@@ -568,7 +575,23 @@ namespace ORTS.Settings
             Commands[(int)UserCommands.ControlTrainBrakeZero] = new UserCommandKeyInput(0x27, KeyModifiers.Control);
             Commands[(int)UserCommands.ControlTroughRefill] = new UserCommandKeyInput(0x15);
             Commands[(int)UserCommands.ControlWiper] = new UserCommandKeyInput(0x2F);
+            Commands[(int)UserCommands.ControlDPMoveToFront] = new UserCommandKeyInput(0x18, KeyModifiers.Control); //O
+            Commands[(int)UserCommands.ControlDPMoveToBack] = new UserCommandKeyInput(0x17, KeyModifiers.Control); //I
+            Commands[(int)UserCommands.ControlDPTraction] = new UserCommandKeyInput(0x26, KeyModifiers.Control); //L
+            Commands[(int)UserCommands.ControlDPIdle] = new UserCommandKeyInput(0x25, KeyModifiers.Control); //K
+            Commands[(int)UserCommands.ControlDPBrake] = new UserCommandKeyInput(0x24, KeyModifiers.Control); //J
+            Commands[(int)UserCommands.ControlDPMore] = new UserCommandKeyInput(0x16, KeyModifiers.Control); //U
+            Commands[(int)UserCommands.ControlDPLess] = new UserCommandKeyInput(0x31, KeyModifiers.Control); //N
 
+        /*public static readonly string[] KeyboardLayout = new[] {
+            "[01 ]   [3B ][3C ][3D ][3E ]   [3F ][40 ][41 ][42 ]   [43 ][44 ][57 ][58 ]   [37 ][46 ][11D]",
+            "                                                                                            ",
+            "[29 ][02 ][03 ][04 ][05 ][06 ][07 ][08 ][09 ][0A ][0B ][0C ][0D ][0E     ]   [52 ][47 ][49 ]",
+            "[0F   ][10 ][11 ][12 ][13 ][14 ][15 ][16 ][17 ][18 ][19 ][1A ][1B ][2B   ]   [53 ][4F ][51 ]",
+            "[3A     ][1E ][1F ][20 ][21 ][22 ][23 ][24 ][25 ][26 ][27 ][28 ][1C      ]                  ",
+            "[2A       ][2C ][2D ][2E ][2F ][30 ][31 ][32 ][33 ][34 ][35 ][36         ]        [48 ]     ",
+            "[1D   ][    ][38  ][39                          ][    ][    ][    ][1D   ]   [4B ][50 ][4D ]",
+        };*/
             Commands[(int)UserCommands.DebugClockBackwards] = new UserCommandKeyInput(0x0C);
             Commands[(int)UserCommands.DebugClockForwards] = new UserCommandKeyInput(0x0D);
             Commands[(int)UserCommands.DebugDumpKeymap] = new UserCommandKeyInput(0x3B, KeyModifiers.Alt);

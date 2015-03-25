@@ -145,7 +145,11 @@ namespace Orts.Simulation.RollingStocks
         private float MaxVibSpeed = 15.0f;//the speed when max shaking happens
         private IIRFilter AccelerationFilter = new IIRFilter(IIRFilter.FilterTypes.Butterworth, 1, 1.0f, 0.1f);
 
-        public bool AcceptMUSignals = true; //indicates if the car accepts multiple unit signals
+        /// <summary>
+        /// Indicates which remote control group the car is in.
+        /// -1: unconnected, 0: sync/front group, 1: async/rear group
+        /// </summary>
+        public int RemoteControlGroup;
         public bool IsMetric;
         public bool IsUK;
 
@@ -181,14 +185,16 @@ namespace Orts.Simulation.RollingStocks
         { 
             get
             {
-                if (AcceptMUSignals && Train != null)
+                if (RemoteControlGroup == 0 && Train != null)
                     return Train.MUThrottlePercent;
+                else if (RemoteControlGroup == 1 && Train != null)
+                    return Train.DPThrottlePercent;
                 else
                     return LocalThrottlePercent;
             }
             set
             {
-                if (AcceptMUSignals && Train != null)
+                if (RemoteControlGroup == 0 && Train != null)
                     Train.MUThrottlePercent = value;
                 else
                     LocalThrottlePercent = value;
@@ -200,20 +206,35 @@ namespace Orts.Simulation.RollingStocks
         { 
             get
             {
-                if (AcceptMUSignals)
+                if (RemoteControlGroup >= 0)
                     return Train.MUGearboxGearIndex;
                 else
                     return LocalGearboxGearIndex;
             } 
             set
             {
-                if (AcceptMUSignals)
+                if (RemoteControlGroup >= 0)
                     Train.MUGearboxGearIndex = value;
                 else
                     LocalGearboxGearIndex = value;
             }
         }
-        public float DynamicBrakePercent { get { return Train.MUDynamicBrakePercent; } set { Train.MUDynamicBrakePercent = value; } }
+
+        public float DynamicBrakePercent
+        {
+            get
+            {
+                if (RemoteControlGroup == 1 && Train != null)
+                    return Train.DPDynamicBrakePercent;
+                else
+                    return Train.MUDynamicBrakePercent;
+            }
+            set
+            {
+                Train.MUDynamicBrakePercent = value;
+            }
+        }
+
         public Direction Direction
         {
             //TODO: following code lines have been modified to flip trainset physics in order to get viewing direction coincident with loco direction when using rear cab.
@@ -236,6 +257,7 @@ namespace Orts.Simulation.RollingStocks
                 Train.MUDirection = Flipped ^ loco.UsingRearCab ? DirectionControl.Flip(value) : value;
             }
         }
+
         public BrakeSystem BrakeSystem;
 
         // TrainCar.Update() must set these variables
@@ -414,7 +436,7 @@ namespace Orts.Simulation.RollingStocks
                         DoubleTunnelCrossSectAreaM2 = 41.8f;  // Typically older slower speed designed tunnels
                         DoubleTunnelPerimeterM = 25.01f;
                     }
-                } 
+                }               
             
 #if DEBUG_TUNNEL_RESISTANCE  
                 Trace.TraceInformation("================================== TrainCar.cs - Tunnel Resistance Initialisation ==============================================================");
@@ -584,7 +606,7 @@ namespace Orts.Simulation.RollingStocks
                       {
                           TrainCrossSectionAreaM2 = PrevTrainCrossSectionAreaM2;  // Assume locomotive cross-sectional area is the largest, if not use new one.
                       }
-                     const float DensityAirKgpM3 = 1.2f;
+                      const float DensityAirKgpM3 = 1.2f;
                       
                       // Determine tunnel X-sect area and perimeter based upon number of tracks
                       if (CarTunnelData.numTunnelPaths >= 2)
@@ -656,58 +678,58 @@ namespace Orts.Simulation.RollingStocks
                     }
                     else
                     {
-                        if (CurrentCurveRadius > 2000)
+                    if (CurrentCurveRadius > 2000)
+                    {
+                        if (RouteSpeedMpS > 55.0)   // If route speed limit is greater then 200km/h, assume high speed passenger route
                         {
-                            if (RouteSpeedMpS > 55.0)   // If route speed limit is greater then 200km/h, assume high speed passenger route
-                            {
-                                // Calculate superelevation based upon the route speed limit and the curve radius
-                                // SE = ((TrackGauge x Velocity^2 ) / Gravity x curve radius)
+                            // Calculate superelevation based upon the route speed limit and the curve radius
+                            // SE = ((TrackGauge x Velocity^2 ) / Gravity x curve radius)
 
-                                SuperelevationM = (TrackGaugeM * RouteSpeedMpS * RouteSpeedMpS) / (GravitationalAccelerationMpS2 * CurrentCurveRadius);
+                            SuperelevationM = (TrackGaugeM * RouteSpeedMpS * RouteSpeedMpS) / (GravitationalAccelerationMpS2 * CurrentCurveRadius);
 
  //                               SuperelevationM = MathHelper.Clamp(SuperelevationM, 0.01f, 0.150f); // If superelevation is greater then 6" (150mm) then limit to this value
 
-                            }
-                            else
-                            {
+                        }
+                        else
+                        {
                                 SuperelevationM = 0.0254f;  // Assume minimal superelevation if conventional mixed route
-                            }
+                        }
 
-                        }
-                        // Set Superelevation value - based upon standard figures
-                        else if (CurrentCurveRadius <= 2000 & CurrentCurveRadius > 1600)
-                        {
-                            SuperelevationM = 0.0254f;  // Assume 1" (or 0.0254m)
-                        }
-                        else if (CurrentCurveRadius <= 1600 & CurrentCurveRadius > 1200)
-                        {
-                            SuperelevationM = 0.038100f;  // Assume 1.5" (or 0.038100m)
-                        }
-                        else if (CurrentCurveRadius <= 1200 & CurrentCurveRadius > 1000)
-                        {
-                            SuperelevationM = 0.050800f;  // Assume 2" (or 0.050800m)
-                        }
-                        else if (CurrentCurveRadius <= 1000 & CurrentCurveRadius > 800)
-                        {
-                            SuperelevationM = 0.063500f;  // Assume 2.5" (or 0.063500m)
-                        }
-                        else if (CurrentCurveRadius <= 800 & CurrentCurveRadius > 600)
-                        {
-                            SuperelevationM = 0.0889f;  // Assume 3.5" (or 0.0889m)
-                        }
-                        else if (CurrentCurveRadius <= 600 & CurrentCurveRadius > 500)
-                        {
-                            SuperelevationM = 0.1016f;  // Assume 4" (or 0.1016m)
-                        }
-                        // for tighter radius curves assume on branch lines and less superelevation
-                        else if (CurrentCurveRadius <= 500 & CurrentCurveRadius > 280)
-                        {
-                            SuperelevationM = 0.0889f;  // Assume 3" (or 0.0762m)
-                        }
-                        else if (CurrentCurveRadius <= 280 & CurrentCurveRadius > 0)
-                        {
-                            SuperelevationM = 0.063500f;  // Assume 2.5" (or 0.063500m)
-                        }
+                    }
+                    // Set Superelevation value - based upon standard figures
+                    else if (CurrentCurveRadius <= 2000 & CurrentCurveRadius > 1600)
+                    {
+                        SuperelevationM = 0.0254f;  // Assume 1" (or 0.0254m)
+                    }
+                    else if (CurrentCurveRadius <= 1600 & CurrentCurveRadius > 1200)
+                    {
+                        SuperelevationM = 0.038100f;  // Assume 1.5" (or 0.038100m)
+                    }
+                    else if (CurrentCurveRadius <= 1200 & CurrentCurveRadius > 1000)
+                    {
+                        SuperelevationM = 0.050800f;  // Assume 2" (or 0.050800m)
+                    }
+                    else if (CurrentCurveRadius <= 1000 & CurrentCurveRadius > 800)
+                    {
+                        SuperelevationM = 0.063500f;  // Assume 2.5" (or 0.063500m)
+                    }
+                    else if (CurrentCurveRadius <= 800 & CurrentCurveRadius > 600)
+                    {
+                        SuperelevationM = 0.0889f;  // Assume 3.5" (or 0.0889m)
+                    }
+                    else if (CurrentCurveRadius <= 600 & CurrentCurveRadius > 500)
+                    {
+                        SuperelevationM = 0.1016f;  // Assume 4" (or 0.1016m)
+                    }
+                    // for tighter radius curves assume on branch lines and less superelevation
+                    else if (CurrentCurveRadius <= 500 & CurrentCurveRadius > 280)
+                    {
+                        SuperelevationM = 0.0889f;  // Assume 3" (or 0.0762m)
+                    }
+                    else if (CurrentCurveRadius <= 280 & CurrentCurveRadius > 0)
+                    {
+                        SuperelevationM = 0.063500f;  // Assume 2.5" (or 0.063500m)
+                    }
                     }
                     // Calulate equal wheel loading speed for current curve and superelevation - this was considered the "safe" speed to travel around a curve
                     // max equal load speed = SQRT ( (superelevation x gravity x curve radius) / track gauge)
@@ -763,13 +785,13 @@ namespace Orts.Simulation.RollingStocks
                           }
 
                     }
-                    else
-                    {
-                        if (IsMaxSafeCurveSpeed)
+                        else
                         {
+                        if (IsMaxSafeCurveSpeed)
+                            {
                             IsMaxSafeCurveSpeed = false; // reset flag for IsMaxSafeCurveSpeed reached - if speed on curve decreases
+                            }
                         }
-                    }
 
                     // Calculate critical speed - indicates the speed above which stock will overturn - sum of the centrifrugal force and the vertical weight of the vehicle around the CoG
                     // critical speed = SQRT ( (centrifrugal force x gravity x curve radius) / Vehicle weight)
@@ -795,12 +817,12 @@ namespace Orts.Simulation.RollingStocks
                         }
  
                     }
-                    else
-                    {
-                        if (IsCriticalSpeed)
+                        else
                         {
+                        if (IsCriticalSpeed)
+                            {
                             IsCriticalSpeed = false; // reset flag for IsCriticalSpeed reached - if speed on curve decreases
-                        }
+                            }
                     }      
 
 #if DEBUG_CURVE_SPEED
@@ -810,9 +832,9 @@ namespace Orts.Simulation.RollingStocks
                    Trace.TraceInformation("Current Speed {0} Equal Load Speed {1} Max Safe Speed {2} Critical Speed {3}", MpS.ToMpH(s), MpS.ToMpH(MaxCurveEqualLoadSpeedMps), MpS.ToMpH(MaxSafeCurveSpeedMps), MpS.ToMpH(CriticalSpeedMpS));
                    Trace.TraceInformation("IsMaxSafeSpeed {0} IsCriticalSpeed {1}", IsMaxSafeCurveSpeed, IsCriticalSpeed);
 #endif
-                }
+                        }
                                
-              }
+                    }
                 else
                 {
                     // reset flags if train is on a straight - in preparation for next curve
@@ -978,7 +1000,7 @@ namespace Orts.Simulation.RollingStocks
                 UiD,
                 Flipped ? Simulator.Catalog.GetString("(flipped)") : "",
                 FormatStrings.Catalog.GetParticularString("Reverser", GetStringAttribute.GetPrettyName(Direction)),
-                AcceptMUSignals ? Simulator.Catalog.GetString("MU'd") : Simulator.Catalog.GetString("Single"),
+                RemoteControlGroup == 0 ? Simulator.Catalog.GetString("Sync") : RemoteControlGroup == 1 ? Simulator.Catalog.GetString("Async") : "----",
                 ThrottlePercent,
                 String.Format("{0}{1}", FormatStrings.FormatSpeedDisplay(SpeedMpS, IsMetric), WheelSlip ? "!!!" : ""),
                 FormatStrings.FormatPower(MotiveForceN * SpeedMpS, IsMetric, false, false),
@@ -987,6 +1009,7 @@ namespace Orts.Simulation.RollingStocks
         public virtual string GetTrainBrakeStatus() { return null; }
         public virtual string GetEngineBrakeStatus() { return null; }
         public virtual string GetDynamicBrakeStatus() { return null; }
+        public virtual string GetMultipleUnitsConfiguration() { return null; }
         public virtual bool GetSanderOn() { return false; }
         bool WheelHasBeenSet = false; //indicating that the car shape has been loaded, thus no need to reset the wheels
 
@@ -1105,7 +1128,7 @@ namespace Orts.Simulation.RollingStocks
             return CarBrakeSystemType;
         }        
         
-        // Method to get Track Gauge from MSTSWagon
+       // Method to get Track Gauge from MSTSWagon
         public virtual float GetTrackGaugeM()
         {
             
@@ -1241,15 +1264,15 @@ namespace Orts.Simulation.RollingStocks
             {
                 if (wheels.Length == 8 && Parts.Count > 0)
                 {
-                    if (wheels == "WHEELS11" || wheels == "WHEELS12" || wheels == "WHEELS13")
-                        WheelAxles.Add(new WheelAxle(offset, bogieID, parentMatrix));
+                if (wheels == "WHEELS11" || wheels == "WHEELS12" || wheels == "WHEELS13")
+                    WheelAxles.Add(new WheelAxle(offset, bogieID, parentMatrix));
 
                     if (wheels == "WHEELS21" || wheels == "WHEELS22" || wheels == "WHEELS23")
                         WheelAxles.Add(new WheelAxle(offset, bogieID, parentMatrix));
+                    }
+                    else
+                        WheelAxles.Add(new WheelAxle(offset, bogieID, parentMatrix));
                 }
-                else
-                    WheelAxles.Add(new WheelAxle(offset, bogieID, parentMatrix));
-            }
             // Process below will install axles with 0 offset when part of a bogie.  This is not the norm and hopefully is a rare occurrence.
             else
             {
@@ -1735,7 +1758,7 @@ namespace Orts.Simulation.RollingStocks
                 if ((CarLengthM - processedCarLength) > thisSectionOffset)
                 {
                     usedCarLength = thisSectionOffset - processedCarLength;
-                }
+            }
 
                 // section has troughs
                 if (thisSection.TroughInfo != null)
@@ -1746,22 +1769,22 @@ namespace Orts.Simulation.RollingStocks
                         float troughEndOffset = thisTrough[thisSectionDirection].TroughEnd;
 
                         if (troughStartOffset > 0 && troughStartOffset > thisSectionOffset)      // start of trough is in section beyond present position - cannot be over this trough nor any following
-                        {
+            {
                             return isOverTrough;
-                        }
+            }
 
                         if (troughEndOffset > 0 && troughEndOffset < (thisSectionOffset - usedCarLength)) // beyond end of trough, test next
-                        {
+            {
                             continue;
                         }
 
                         if (troughStartOffset <= 0 || troughStartOffset < (thisSectionOffset - usedCarLength)) // start of trough is behind
-                        {
+                {
                             isOverTrough = true;
                             return isOverTrough;
-                        }
-                    }
                 }
+            }
+        }
                 // tested this section, any need to go beyond?
 
                 processedCarLength += usedCarLength;
@@ -1797,7 +1820,7 @@ namespace Orts.Simulation.RollingStocks
         public virtual float GetFilledFraction(uint pickupType)
         {
             return 0f;
-        }
+    }
     }
 
     public class WheelAxle : IComparer<WheelAxle>

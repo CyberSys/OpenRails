@@ -476,6 +476,13 @@ namespace Orts.Viewer3D
             ActivityCommand.Receiver = ActivityWindow;  // and therefore shared by all sub-classes
             UseCameraCommand.Receiver = this;
             MoveCameraCommand.Receiver = this;
+            DPMoveToFrontCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
+            DPMoveToBackCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
+            DPTractionCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
+            DPIdleCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
+            DPDynamicBrakeCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
+            DPMoreCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
+            DPLessCommand.Receiver = (MSTSLocomotive)PlayerLocomotive;
         }
 
         public void ChangeToPreviousFreeRoamCamera()
