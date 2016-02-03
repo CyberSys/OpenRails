@@ -46,6 +46,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Event = Orts.Common.Event;
+using System.Net.Sockets;
+using System.Text;
 
 namespace Orts.Simulation.RollingStocks
 {
@@ -424,6 +426,8 @@ namespace Orts.Simulation.RollingStocks
 
          }
 
+        UdpClient Statsd = new UdpClient("127.0.0.1", 2201);
+
         // called when it's time to update the MotiveForce and FrictionForce
         public virtual void Update(float elapsedClockSeconds)
         {
@@ -431,6 +435,10 @@ namespace Orts.Simulation.RollingStocks
             GravityForceN = MassKG * GravitationalAccelerationMpS2 * WorldPosition.XNAMatrix.M32;
             CurrentElevationPercent = 100f * WorldPosition.XNAMatrix.M32;
             AbsSpeedMpS = Math.Abs(_SpeedMpS);
+            var ecs = Encoding.ASCII.GetBytes("elapsedClockSeconds:" + elapsedClockSeconds + "|ms");
+            Statsd.Send(ecs, ecs.Length);
+            var stats = Encoding.ASCII.GetBytes("absSpeed:" + AbsSpeedMpS + "|g");
+            Statsd.Send(stats, stats.Length);
 
             //TODO: next if block has been inserted to flip trainset physics in order to get viewing direction coincident with loco direction when using rear cab.
             // To achieve the same result with other means, without flipping trainset physics, the block should be deleted
