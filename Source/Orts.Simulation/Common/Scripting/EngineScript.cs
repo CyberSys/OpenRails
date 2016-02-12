@@ -139,7 +139,7 @@ namespace Orts.Common.Scripting
         //      - GetControlValue: Get the value of associated parameter, nothing special.
         //
         // 5. Custom controls
-        //      - Defined with script RegisterControl call
+        //      - Defined with RegisterControl call
         //      - Index: always 1
         //      - Can be any string except the built-in MSTS control names or the ones starting with "Control" or "ORTS".
         //      - Can be used as an animation node name in 3D cabviews.
@@ -152,10 +152,10 @@ namespace Orts.Common.Scripting
         readonly Simulator Simulator;
         List<KeyMapCommand> KeyMap;
 
-        private string ScriptName { get; set; }
+        private List<string> ScriptNames = new List<string>();
         private string KeyMapFileName { get; set; }
-        public string SoundFileName { get; private set; }
-        ControllerScript Script;
+        public readonly Dictionary<ControllerScript, string> SoundManagementFiles = new Dictionary<ControllerScript, string>();
+        private readonly List<ControllerScript> Scripts = new List<ControllerScript>();
 
         // Receive delegates from Viewer3D.UserInput
         public static Func<UserCommands, bool> UserInputIsDown;
@@ -207,10 +207,6 @@ namespace Orts.Common.Scripting
         
         public ContentScript(MSTSLocomotive locomotive)
         {
-            ScriptName = "TestScript.cs";
-            SoundFileName = "TestSound.sms";
-            KeyMapFileName = "TestKeyMap.json";
-
             Simulator = locomotive.Simulator;
             Locomotive = locomotive;
 
@@ -229,8 +225,7 @@ namespace Orts.Common.Scripting
 
         public ContentScript(ContentScript contentScript) : this(contentScript.Locomotive)
         {
-            ScriptName = contentScript.ScriptName;
-            SoundFileName = contentScript.SoundFileName;
+            ScriptNames = contentScript.ScriptNames;
             KeyMapFileName = contentScript.KeyMapFileName;
         }
 
@@ -239,6 +234,24 @@ namespace Orts.Common.Scripting
             return new ContentScript(this);
         }
 
+        public void ParseScripts(string lowercasetoken, Parsers.Msts.STFReader stf)
+        {
+            switch (lowercasetoken)
+            {
+                case "engine(ortsscripts":
+                    stf.MustMatch("(");
+                    string script;
+                    while ((script = stf.ReadItem()) != ")")
+                    {
+                        ScriptNames.Add(script);
+                    }
+                    break;
+                case "engine(ortskeymap":
+                    KeyMapFileName = stf.ReadStringBlock(null);
+                    break;
+            }
+        }
+        
         /// <summary>
         /// Execute action on either the whole train, or just the current locomotive, based on scope parameter
         /// </summary>
@@ -259,25 +272,15 @@ namespace Orts.Common.Scripting
 
         public void Initialize()
         {
-            var pathArray = new string[] { Path.Combine(Path.GetDirectoryName(Locomotive.WagFilePath), "Script") };
-            Script = Simulator.ScriptManager.Load(pathArray, ScriptName) as ControllerScript;
-
-            if (Script == null)
-                Script = new DummyControllerScript();
-
-            Script.SetControlValue = (controlName, index, value) => SetControlValue(controlName, index, value);
-            Script.GetControlValue = (controlName, index) => GetControlValue(controlName, index);
-            
             foreach (var cabViewList in Locomotive.CabViewList)
                 foreach (var cabViewControl in cabViewList.CVFFile.CabViewControls)
                     if (!ConfiguredControls.ContainsKey(cabViewControl.ControlType.ToString()))
                         ConfiguredControls.Add(cabViewControl.ControlType.ToString(), cabViewControl);
-            
-            LoadKeyMap();
 
-            Script.Initialize();
+            LoadKeyMap();
+            LoadScripts();
         }
-        
+
         private void LoadKeyMap()
         {
             if (KeyMapFileName == null)
@@ -314,6 +317,39 @@ namespace Orts.Common.Scripting
                     DisableByKey(userCommandKeyInput);
                 }
             }
+        }
+
+        private void LoadScripts()
+        {
+            var pathArray = new[] { Path.Combine(Path.GetDirectoryName(Locomotive.WagFilePath), "Script") };
+            foreach (var scriptName in ScriptNames)
+            {
+                var script = Simulator.ScriptManager.Load(pathArray, scriptName) as ControllerScript;
+
+                if (script == null)
+                    continue;
+
+                script.SetControlValue = (controlName, index, value) => SetControlValue(controlName, index, value);
+                script.GetControlValue = (controlName, index) => GetControlValue(controlName, index);
+
+                script.Initialize();
+
+                if (script.SoundFileName != null && script.SoundFileName != "")
+                {
+                    var soundPathArray = new[] {
+                        Path.Combine(Path.GetDirectoryName(Locomotive.WagFilePath), "SOUND"),
+                        Path.Combine(Simulator.BasePath, "SOUND"),
+                    };
+                    var soundPath = ORTSPaths.GetFileFromFolders(soundPathArray, script.SoundFileName);
+                    if (File.Exists(soundPath))
+                        SoundManagementFiles.Add(script, soundPath);
+                }
+
+                Scripts.Add(script);
+            }
+
+            if (Scripts.Count == 0)
+                Scripts.Add(new DummyControllerScript());
         }
 
         /// <summary>
@@ -605,7 +641,7 @@ namespace Orts.Common.Scripting
             if (scriptedControl)
             {
                 if (index == 0)
-                    TrainCarAction<MSTSLocomotive>(0, l => SignalEvent(l.ContentScripts, controlName, value));
+                    TrainCarAction<MSTSLocomotive>(0, l => l.ContentScript.SignalEvent(controlName, value));
                 else if (index == 1)
                     ScriptedControls[controlName].OldValue = MathHelper.Clamp(value, (float)ScriptedControls[controlName].MinValue, (float)ScriptedControls[controlName].MaxValue);
                 return;
@@ -634,16 +670,16 @@ namespace Orts.Common.Scripting
 
                 if (newValue != oldValue)
                 {
-                    TrainCarAction<MSTSLocomotive>(1, l => SignalEvent(l.ContentScripts, command.Name, newValue));
+                    TrainCarAction<MSTSLocomotive>(1, l => l.ContentScript.SignalEvent(command.Name, newValue));
                     SetControlValue(command.Name, 1, newValue);
                 }
             }
-            
-            if (Script != null)
-                Script.Update(elapsedSeconds);
 
-            foreach (var aaa in Locomotive.Train.Cars)
-                Console.WriteLine("___{0} {1} {2}", aaa.CarID, (aaa as MSTSWagon).DoorLeftOpen, (aaa as MSTSWagon).DoorRightOpen);
+            foreach (var script in Scripts)
+                script.Update(elapsedSeconds);
+
+            //foreach (var aaa in Locomotive.Train.Cars)
+            //    Console.WriteLine("___{0} {1} {2}", aaa.CarID, (aaa as MSTSWagon).DoorLeftOpen, (aaa as MSTSWagon).DoorRightOpen);
         }
 
         /// <summary>
@@ -653,18 +689,17 @@ namespace Orts.Common.Scripting
         {
             foreach (var eventHandler in eventHandlers)
                 eventHandler.HandleEvent((Event)customEventID);
-            //eventHandler.HandleEvent((Event)customEventID, script);
+                //eventHandler.HandleEvent((Event)customEventID, script);
         }
 
-        public static int SignalEvent(List<ContentScript> scripts, string controlName, float? value)
+        public int SignalEvent(string controlName, float? value)
         {
             var takenOver = 0;
-            foreach (var script in scripts)
+            if (ScriptedCommands.ContainsKey(controlName) || ScriptedControls.ContainsKey(controlName))
             {
-                if ((script.ScriptedCommands.ContainsKey(controlName) || script.ScriptedControls.ContainsKey(controlName))
-                    && script.Script != null)
+                foreach (var script in Scripts)
                 {
-                    script.Script.HandleEvent(controlName, value);
+                    script.HandleEvent(controlName, value);
                     takenOver = 1;
                 }
             }
@@ -730,7 +765,7 @@ namespace Orts.Common.Scripting
                     var toValue = command.ToValue == float.MaxValue && command.Index == 1
                         ? 1 - MathHelper.Clamp((float)ScriptedControls[command.Name].OldValue, 0, 1)
                         : command.ToValue;
-                    TrainCarAction<MSTSLocomotive>(command.Index, l => SignalEvent(l.ContentScripts, command.Name, toValue));
+                    TrainCarAction<MSTSLocomotive>(command.Index, l => l.ContentScript.SignalEvent(command.Name, toValue));
                     if (command.Index == 1)
                         SetControlValue(command.Name, command.Index, toValue);
                     break;

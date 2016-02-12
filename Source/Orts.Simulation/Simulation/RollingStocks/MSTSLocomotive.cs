@@ -234,7 +234,7 @@ namespace Orts.Simulation.RollingStocks
         public float DynamicBrakeIntervention = -1;
         protected float PreviousDynamicBrakeIntervention = -1;
 
-        public List<ContentScript> ContentScripts;
+        public ContentScript ContentScript;
         public ScriptedTrainControlSystem TrainControlSystem;
 
         public Axle LocomotiveAxle;
@@ -265,9 +265,7 @@ namespace Orts.Simulation.RollingStocks
             ThrottleController = new MSTSNotchController();
             DynamicBrakeController = new MSTSNotchController();
             TrainControlSystem = new ScriptedTrainControlSystem(this);
-            ContentScripts = new List<ContentScript>();
-            // FIXME: ContentScript filename parsing is unfinished
-            ContentScripts.Add(new ContentScript(this));
+            ContentScript = new ContentScript(this);
         }
 
         /// <summary>
@@ -676,6 +674,8 @@ namespace Orts.Simulation.RollingStocks
                     break;
                 case "engine(ortsdynamicblendingoverride": DynamicBrakeBlendingOverride = stf.ReadBoolBlock(false); break;
                 case "engine(ortsdynamicblendingforcematch": DynamicBrakeBlendingForceMatch = stf.ReadBoolBlock(false); break;
+                case "engine(ortsscripts":
+                case "engine(ortskeymap": ContentScript.ParseScripts(lowercasetoken, stf); break;
                 default: base.Parse(lowercasetoken, stf); break;
             }
         }
@@ -746,8 +746,7 @@ namespace Orts.Simulation.RollingStocks
             EngineBrakeController = locoCopy.EngineBrakeController != null ? locoCopy.EngineBrakeController.Clone(this) : null;
             DynamicBrakeController = locoCopy.DynamicBrakeController != null ? (MSTSNotchController)locoCopy.DynamicBrakeController.Clone() : null;
             TrainControlSystem.Copy(locoCopy.TrainControlSystem);
-            foreach (var script in locoCopy.ContentScripts)
-                ContentScripts.Add(script.Clone());
+            ContentScript = locoCopy.ContentScript.Clone();
 
             MoveParamsToAxle();
 
@@ -901,8 +900,7 @@ namespace Orts.Simulation.RollingStocks
             TrainBrakeController.Initialize();
             EngineBrakeController.Initialize();
             TrainControlSystem.Initialize();
-            foreach (var script in ContentScripts)
-                script.Initialize();
+            ContentScript.Initialize();
 
             base.Initialize();
             if (DynamicBrakeBlendingEnabled) airPipeSystem = BrakeSystem as AirSinglePipe;
@@ -1009,8 +1007,7 @@ namespace Orts.Simulation.RollingStocks
         public override void Update(float elapsedClockSeconds)
         {
             TrainControlSystem.Update();
-            foreach (var script in ContentScripts)
-                script.Update(elapsedClockSeconds);
+            ContentScript.Update(elapsedClockSeconds);
 
             TrainBrakeController.Update(elapsedClockSeconds);
             if (TrainBrakeController.UpdateValue > 0.0)

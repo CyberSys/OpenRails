@@ -1102,8 +1102,7 @@ namespace Orts.Common
             if (Receiver == null) return;
             if (Command.Index == 1)
                 ContentScript.HandleEvent(Receiver.EventHandlers, Command.SoundTrigger);
-            foreach (var script in Receiver.ContentScripts)
-                script.Execute(Command);
+            Receiver.ContentScript.Execute(Command);
             // Report();
         }
     }

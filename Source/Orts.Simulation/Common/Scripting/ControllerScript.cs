@@ -23,6 +23,7 @@ namespace ORTS.Scripting.Api
 {
     public abstract class ControllerScript : AbstractScriptClass
     {
+        public string SoundFileName = string.Empty;
         /// <summary>
         /// Called once at initialization time.
         /// </summary>

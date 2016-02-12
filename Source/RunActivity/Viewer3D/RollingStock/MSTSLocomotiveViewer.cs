@@ -75,21 +75,8 @@ namespace Orts.Viewer3D.RollingStock
                     Viewer.SoundProcess.AddSoundSources(script, new List<SoundSourceBase>() {
                         new SoundSource(Viewer, Locomotive, Locomotive.TrainControlSystem.Sounds[script])});
 
-            foreach (var script in Locomotive.ContentScripts)
-            {
-                if (script.SoundFileName != null && script.SoundFileName != "")
-                {
-                    var soundPathArray = new[] {
-                        Path.Combine(Path.GetDirectoryName(Locomotive.WagFilePath), "SOUND"),
-                        Path.Combine(Viewer.Simulator.BasePath, "SOUND"),
-                    };
-                    var soundPath = ORTSPaths.GetFileFromFolders(soundPathArray, script.SoundFileName);
-                    if (File.Exists(soundPath))
-                        Viewer.SoundProcess.AddSoundSources(script, new List<SoundSourceBase>() {
-                            new SoundSource(Viewer, Locomotive, soundPath) });
-                    //Sounds.Add(Script, soundPath);
-                }
-            }
+            foreach (var script in Locomotive.ContentScript.SoundManagementFiles.Keys)
+                Viewer.SoundProcess.AddSoundSource(script, new SoundSource(Viewer, Locomotive, Locomotive.ContentScript.SoundManagementFiles[script]));
 
             // Delegate UserInput class methods to ContentScript, so that the script will be able to query input devices states
             if (ContentScript.UserInputIsDown == null) ContentScript.UserInputIsDown = (command) => UserInput.IsDown(command);
@@ -247,19 +234,18 @@ namespace Orts.Viewer3D.RollingStock
                 // Check if a built-in command is disabled by engine script first
                 if (UserInput.IsPressed(command))
                 {
-                    if (ContentScript.SignalEvent(Locomotive.ContentScripts, command.ToString(), 1) == 0)
+                    if (Locomotive.ContentScript.SignalEvent(command.ToString(), 1) == 0)
                         UserInputCommands[command][1]();
                 }
                 else if (UserInput.IsReleased(command))
                 {
-                    if (ContentScript.SignalEvent(Locomotive.ContentScripts, command.ToString(), 0) == 0)
+                    if (Locomotive.ContentScript.SignalEvent(command.ToString(), 0) == 0)
                         UserInputCommands[command][0]();
                 }
             }
             
             // Execute custom commands defined in keymap
-            foreach (var script in Locomotive.ContentScripts)
-                script.HandleUserInput(elapsedTime);
+            Locomotive.ContentScript.HandleUserInput(elapsedTime);
         }
 
         /// <summary>
@@ -2242,16 +2228,9 @@ namespace Orts.Viewer3D.RollingStock
                     catch
                     {
                         type = CABViewControlTypes.NONE;
-                        var scriptedControl = false;
-                        foreach (var script in Locomotive.ContentScripts)
-                        {
-                            if (script.ScriptedControls.ContainsKey(tmp[0].Trim()))
-                            {
-                                key = (tmp[0].Trim()).GetHashCode();
-                                scriptedControl = true;
-                            }
-                        }
-                        if (!scriptedControl)
+                        if (Locomotive.ContentScript.ScriptedControls.ContainsKey(tmp[0].Trim()))
+                            key = (tmp[0].Trim()).GetHashCode();
+                        else
                             continue;
                     }
 
