@@ -56,6 +56,13 @@ struct VERTEX_INPUT
 	float4x4 Instance : TEXCOORD1;
 };
 
+struct VERTEX_INPUT_FOREST
+{
+	float4 Position : POSITION;
+	float2 TexCoord : TEXCOORD0;
+	float3 Normal   : NORMAL;
+};
+
 struct VERTEX_INPUT_BLUR
 {
 	float4 Position : POSITION;
@@ -96,7 +103,7 @@ VERTEX_OUTPUT VSShadowMap(in VERTEX_INPUT In)
 	return Out;
 }
 
-VERTEX_OUTPUT VSShadowMapForest(in VERTEX_INPUT In)
+VERTEX_OUTPUT VSShadowMapForest(in VERTEX_INPUT_FOREST In)
 {
 	VERTEX_OUTPUT Out = (VERTEX_OUTPUT)0;
 
